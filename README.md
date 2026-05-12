@@ -17,16 +17,19 @@ test-marketplace/
 ├── .claude-plugin/
 │   ├── marketplace.json    # thin-catalog form, pinned to nfrith/test-marketplace@main
 │   └── plugin.json         # plugin manifest
+├── .mcp.json               # MCP server declaration — auto-starts sandbox-mcp at session open
 ├── monitors/
 │   └── monitors.json       # plugin-monitor declaration — auto-starts the supervisor at session open
-└── sandbox-construct/
-    ├── src/index.ts        # mock bun dispatcher: tick log, status.json, SIGTERM-ignore
-    ├── supervisor.sh       # wraps the dispatcher with blocker-only chat filter
-    ├── construct.json      # construct manifest (lifecycle_strategy: process-lifecycle)
-    ├── VERSION
-    ├── package.json
-    ├── tsconfig.json
-    └── migrations/         # sequential migration scripts (vN-to-vM.ts); empty at v1
+├── sandbox-construct/
+│   ├── src/index.ts        # mock bun dispatcher: tick log, status.json, SIGTERM-ignore
+│   ├── supervisor.sh       # wraps the dispatcher with blocker-only chat filter
+│   ├── construct.json      # construct manifest (lifecycle_strategy: process-lifecycle)
+│   ├── VERSION
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── migrations/         # sequential migration scripts (vN-to-vM.ts); empty at v1
+└── sandbox-mcp/
+    └── index.ts            # minimal stdio MCP server — `ping` tool returns pid/started_at/build
 ```
 
 ## Ref pinning
@@ -110,6 +113,23 @@ distinctly (validated 2026-05-12):
 To pick up new monitor bytes: end the session and reopen. The fresh session picks the
 latest cached version automatically. Old cache versions remain on disk indefinitely —
 no garbage collection.
+
+### F. MCP server lifecycle (the versioning-system precondition)
+
+The plugin ships a minimal stdio MCP server alongside the plugin-monitor (`sandbox-mcp/index.ts`). It exposes one tool, `ping`, returning `{ pid, started_at, build }`. This exists to answer two questions that decide whether ALS dispatchers should migrate from plugin-monitors to MCP servers:
+
+1. **Does `/reload-plugins` kill+respawn the MCP host process?**
+   - Capture the server's pid via `ps | grep sandbox-mcp` and call `ping` to record `build`.
+   - Bump the `BUILD` constant in `sandbox-mcp/index.ts`, push, run `/reload-plugins`.
+   - If the pid changed AND `ping` returns the new `build`: MCP servers hot-reload like skills/hooks. Versioning system simplification confirmed.
+   - If the pid is unchanged OR `build` is still the old value: re-registration only. MCP servers have the same monitor-asymmetry — moving the dispatcher there doesn't help.
+
+2. **Does Claude Code auto-respawn the MCP server after SIGKILL?**
+   - `kill -9` the server's pid.
+   - Wait ≥30s, watch `ps`.
+   - Call `ping` again. Success (auto-respawned) or failure (dead like a monitor)?
+
+The MCP server has no overlap with the dispatcher — they run independently. Coexistence in one plugin is part of the test.
 
 ### E. Lifecycle / blocker-channel introspection
 
