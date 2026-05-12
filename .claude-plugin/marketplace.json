@@ -8,8 +8,8 @@
     {
       "name": "test-marketplace",
       "source": {
-        "source": "github",
-        "repo": "nfrith/test-marketplace",
+        "source": "url",
+        "url": "https://github.com/nfrith/test-marketplace.git",
         "ref": "main"
       },
       "description": "Test plugin — exists to exercise marketplace loading, the construct upgrade engine, and the plugin-monitor pattern.",
