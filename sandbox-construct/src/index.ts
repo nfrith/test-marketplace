@@ -21,6 +21,7 @@ const SYSTEM_ROOT =
 const CONSTRUCT_NAME = "sandbox";
 const POLL_MS = Number(process.env.SANDBOX_POLL_MS ?? 5000);
 const STATUS_PATH = `${SYSTEM_ROOT}/.claude/constructs/${CONSTRUCT_NAME}/status.json`;
+const BUILD = "v2";
 
 // Mirror ALS dispatcher: SIGTERM is ignored. Supervisors must SIGKILL.
 process.on("SIGTERM", () => {
@@ -30,7 +31,7 @@ process.on("SIGTERM", () => {
 });
 
 console.log(
-  `[mock-dispatcher] start construct=${CONSTRUCT_NAME} pid=${process.pid}`,
+  `[mock-dispatcher] start construct=${CONSTRUCT_NAME} pid=${process.pid} build=${BUILD}`,
 );
 console.log(`[mock-dispatcher] system=${SYSTEM_ROOT}`);
 console.log(`[mock-dispatcher] poll=${POLL_MS}ms`);
@@ -52,6 +53,7 @@ function writeStatus() {
         tick_count: tickCount,
         blocked: 0,
         lifecycle_mode: "running",
+        build: BUILD,
       },
       null,
       2,
