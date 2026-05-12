@@ -1,6 +1,6 @@
 {
   "name": "test-marketplace",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Test plugin — exists to exercise marketplace loading, the construct upgrade engine, and the plugin-monitor pattern.",
   "author": { "name": "Nicholas Frith" },
   "hooks": []

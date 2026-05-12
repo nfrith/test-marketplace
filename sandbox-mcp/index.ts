@@ -10,7 +10,7 @@
  * Hand-rolled JSON-RPC over stdio — no SDK dep, easy to audit.
  */
 
-const BUILD = "v1";
+const BUILD = "v2";
 const STARTED_AT = new Date().toISOString();
 const PROTOCOL_VERSION = "2025-11-25";
 const SERVER_NAME = "sandbox-mcp";
