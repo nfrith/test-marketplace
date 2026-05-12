@@ -21,7 +21,7 @@ const SYSTEM_ROOT =
 const CONSTRUCT_NAME = "sandbox";
 const POLL_MS = Number(process.env.SANDBOX_POLL_MS ?? 5000);
 const STATUS_PATH = `${SYSTEM_ROOT}/.claude/constructs/${CONSTRUCT_NAME}/status.json`;
-const BUILD = "v2";
+const BUILD = "v3";
 
 // Mirror ALS dispatcher: SIGTERM is ignored. Supervisors must SIGKILL.
 process.on("SIGTERM", () => {
