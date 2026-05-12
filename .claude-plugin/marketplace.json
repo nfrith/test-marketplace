@@ -7,11 +7,7 @@
   "plugins": [
     {
       "name": "test-marketplace",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/nfrith/test-marketplace.git",
-        "ref": "main"
-      },
+      "source": "./",
       "description": "Test plugin — exists to exercise marketplace loading, the construct upgrade engine, and the plugin-monitor pattern.",
       "author": { "name": "Nicholas Frith" }
     }
