@@ -11,6 +11,7 @@
     { "path": "package.json", "owner": "vendor" },
     { "path": "tsconfig.json", "owner": "vendor" },
     { "path": "src", "owner": "vendor" },
+    { "path": "supervisor.sh", "owner": "vendor" },
     { "path": "migrations", "owner": "vendor" }
   ]
 }

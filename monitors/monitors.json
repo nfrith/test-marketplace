@@ -1,0 +1,8 @@
+[
+  {
+    "name": "sandbox-dispatcher",
+    "command": "bash \"${CLAUDE_PLUGIN_ROOT}/sandbox-construct/supervisor.sh\" \"${CLAUDE_PROJECT_DIR}\"",
+    "description": "sandbox mock dispatcher (blocker-only chat surface; routine state in status.json)",
+    "when": "always"
+  }
+]

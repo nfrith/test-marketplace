@@ -2,13 +2,17 @@
   "name": "test-marketplace",
   "owner": { "name": "Section 9 Technologies LLC" },
   "metadata": {
-    "description": "Throwaway test bed for marketplace, plugin loading, and construct-migration mechanics. Not for production use."
+    "description": "Throwaway test bed for marketplace, plugin loading, construct-migration, and plugin-monitor mechanics. Not for production use."
   },
   "plugins": [
     {
       "name": "test-marketplace",
-      "source": "./",
-      "description": "Test plugin — exists to exercise marketplace loading and the construct upgrade engine.",
+      "source": {
+        "source": "github",
+        "repo": "nfrith/test-marketplace",
+        "ref": "main"
+      },
+      "description": "Test plugin — exists to exercise marketplace loading, the construct upgrade engine, and the plugin-monitor pattern.",
       "author": { "name": "Nicholas Frith" }
     }
   ]
