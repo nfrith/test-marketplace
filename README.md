@@ -68,7 +68,7 @@ Verify the plugin appears in `~/.claude/plugins/installed_plugins.json`.
 
 ### B. Plugin-monitor auto-start (the absorb-/bootup experiment)
 
-After install, **open a new session**. Plugin monitors fire on next session, not the install session. The `monitors/monitors.json` declaration runs the supervisor, which spawns the mock dispatcher and pipes its output through a blocker-only filter.
+After install, the plugin monitor starts the supervisor (which spawns the mock dispatcher and pipes its output through a blocker-only filter). Empirically, `/reload-plugins` in the install session also triggers the monitor's first spawn — you do not strictly need a fresh session to see it boot.
 
 You should see **nothing** in chat during happy path — the filter drops routine tick lines. To confirm the dispatcher is alive, read:
 
@@ -76,9 +76,11 @@ You should see **nothing** in chat during happy path — the filter drops routin
 ${CLAUDE_PROJECT_DIR}/.claude/constructs/sandbox/status.json
 ```
 
-Look for an increasing `tick_count` and a recent `last_tick` ISO timestamp.
+Look for an increasing `tick_count`, a recent `last_tick` ISO timestamp, and a `build` field that matches the installed version's marker.
 
 To stop the dispatcher: end the session, or `kill -9` the bun process (SIGTERM is ignored, mirroring the ALS dispatcher).
+
+**Health-probe caveat (validated 2026-05-12):** `status.json` does not self-invalidate after a SIGKILL — it will continue to report `lifecycle_mode: "running"` with a stale `last_tick`. Always cross-check `ps` for the bun pid before trusting status.json as a liveness signal.
 
 ### C. Construct migration engine
 
@@ -91,4 +93,33 @@ To stop the dispatcher: end the session, or `kill -9` the bun process (SIGTERM i
 
 ### D. Mid-session reload
 
-After bumping the plugin version, the install path is: `claude plugin update test-marketplace@test-marketplace`. The new monitor declarations only take effect on the **next** session — mid-session reloads of plugin monitors are not supported (per Claude Code v2.1.105+ docs).
+After bumping the plugin version, two operations are separate and must be understood
+distinctly (validated 2026-05-12):
+
+1. **`/reload-plugins`** — when the marketplace ref is pinned to `@main` (or any other
+   branch/tag that has moved), this **does** fetch the new version into the on-disk
+   cache (`~/.claude/plugins/cache/<plugin>/<plugin>/<version>/`). Skills, slash
+   commands, agents, and hooks load from the new version on next invocation. Subsequent
+   `/reload-plugins` calls are no-ops against the running state.
+2. **Running monitor lifecycle** — `/reload-plugins` does **not** restart already-running
+   plugin monitors. The running supervisor stays bound to the bytes it was spawned
+   against for the rest of the session, even after fresh bytes appear in the cache.
+   SIGKILL on the running process is also not auto-recovered — Claude Code does not
+   respawn dead monitors mid-session.
+
+To pick up new monitor bytes: end the session and reopen. The fresh session picks the
+latest cached version automatically. Old cache versions remain on disk indefinitely —
+no garbage collection.
+
+### E. Lifecycle / blocker-channel introspection
+
+Two distinct notification channels exist from a plugin monitor to chat:
+
+- **stdout-line-filter-match** — anything the supervisor's stdout pipeline prints (after
+  its grep filter) becomes a `task-notification` "Monitor event" line in chat.
+- **lifecycle-status-change** — when the monitor process exits or is killed, Claude
+  Code emits a separate `task-notification` with a `status` field (`killed`, `exited`,
+  etc.). This fires independently of any stdout match.
+
+This means the supervisor's filter pattern only controls the *content* surface; the
+*lifecycle* surface is always-on.
