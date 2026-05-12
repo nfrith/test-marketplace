@@ -1,0 +1,13 @@
+{
+  "schema": "als-construct-manifest@1",
+  "name": "sandbox",
+  "version": 1,
+  "migration_strategy": "sequential",
+  "lifecycle_strategy": "none",
+  "migrations_dir": "migrations",
+  "source_paths": [
+    { "path": "VERSION", "owner": "vendor" },
+    { "path": "construct.json", "owner": "vendor" },
+    { "path": "migrations", "owner": "vendor" }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "test-marketplace",
+  "version": "0.1.0",
+  "description": "Test plugin — exists to exercise marketplace loading and the construct upgrade engine.",
+  "author": { "name": "Nicholas Frith" },
+  "hooks": []
+}
