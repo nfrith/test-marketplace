@@ -3,6 +3,10 @@
     "sandbox-mcp": {
       "command": "bun",
       "args": ["${CLAUDE_PLUGIN_ROOT}/sandbox-mcp/index.ts"]
+    },
+    "dumber-mcp": {
+      "command": "bun",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dumber-mcp/index.ts"]
     }
   }
 }
