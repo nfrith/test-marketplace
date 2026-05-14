@@ -143,3 +143,54 @@ Two distinct notification channels exist from a plugin monitor to chat:
 
 This means the supervisor's filter pattern only controls the *content* surface; the
 *lifecycle* surface is always-on.
+
+### G. Daemon-survival test (the detach pattern)
+
+ALS is being rewritten to put its delamain-dispatcher into a Claude Code plugin MCP server. The new dispatcher needs to spawn a detached daemon process that outlives the MCP server. The unknown: **when Claude Code kills an MCP server (session end, `/reload-plugins`, etc.), does that killing reach down into detached child processes the MCP server spawned?** If yes, the daemon pattern is dead. If no, the pattern works.
+
+Three mechanisms Claude Code might use, each producing a different outcome:
+
+- `kill <mcp_pid>` (single PID, SIGTERM/SIGKILL) → detached child survives (reparented to init when parent dies)
+- `kill -- -<pgid>` (process group) → detached child survives IF it called `setsid()` (bun's `detached: true` does this)
+- Recursive tree-walk by PPID → detached child only survives if double-forked (PPID is init by walk time)
+
+This rig empirically resolves which mechanism Claude Code uses.
+
+**Components.** The `daemon-launcher/` MCP server is a zero-tools stdio MCP server. On startup it reads `~/.als-test/daemon.pid`. If the PID is alive, it adopts it; otherwise it spawns `daemon/index.ts` via `Bun.spawn({ detached: true, stdio: ["ignore","ignore","ignore"] })` and records the new PID. The daemon then ticks a heartbeat once per second to `/tmp/dst/daemon-heartbeat.json` with no signal handlers — we want to observe whether the harness kills it.
+
+**File locations** (scratch — safe to `rm -rf` between runs):
+
+- PID file: `~/.als-test/daemon.pid`
+- Heartbeat: `/tmp/dst/daemon-heartbeat.json`
+- Launcher events: `/tmp/dst/launcher-events.jsonl`
+
+**How to find the launcher PID.** The launcher *is* the MCP server process spawned by Claude Code:
+
+```
+ps aux | grep daemon-launcher/index.ts | grep -v grep
+```
+
+**How to find the daemon PID.**
+
+```
+cat ~/.als-test/daemon.pid
+```
+
+**Six observations.** Run in order, record the result of each:
+
+| # | Trigger | What it tests | What to check |
+|---|---|---|---|
+| G1 | Install plugin, open session (baseline) | Launcher spawns daemon | `tail -n 5 /tmp/dst/launcher-events.jsonl` shows `spawned-daemon`; `cat /tmp/dst/daemon-heartbeat.json` exists with `tick_count` climbing |
+| G2 | **Close Claude Code session, wait 30s** | Daemon survives session close | `cat /tmp/dst/daemon-heartbeat.json` — is `tick_count` still climbing? Yes → daemon survived. Frozen → harness killed it |
+| G3 | Open new Claude Code session | Multi-session client-of-daemon | `tail -n 5 /tmp/dst/launcher-events.jsonl` shows `found-existing`; `cat /tmp/dst/daemon-heartbeat.json` PID unchanged from G2; `tick_count` still climbing |
+| G4 | `/reload-plugins` (active session) | Cascade respawn behavior on bytes change | `cat /tmp/dst/daemon-heartbeat.json` — same PID as before? Still ticking? |
+| G5 | `kill -9 <mcp_launcher_pid>` directly | Parent-killed scenario | `cat /tmp/dst/daemon-heartbeat.json` — still ticking? Look at `ppid` field: did it flip to 1 (init)? |
+| G6 | `kill -9 <daemon_pid>` | Recovery path | Open new session; `tail -n 5 /tmp/dst/launcher-events.jsonl` shows a new `spawned-daemon` entry; new PID in `~/.als-test/daemon.pid` |
+
+**Reading the diagnostic fields.** Each heartbeat carries `{pid, ppid, started_at, build, tick_count, last_tick}`. The `ppid` field is the load-bearing one: a PPID flip from the launcher's PID to `1` (init/launchd) confirms reparenting and is the success signal for detach. A `started_at` that survives across observations confirms it's the same process, not a respawn.
+
+**Reset between runs.**
+
+```
+rm -rf /tmp/dst ~/.als-test
+```

@@ -7,6 +7,10 @@
     "dumber-mcp": {
       "command": "bun",
       "args": ["${CLAUDE_PLUGIN_ROOT}/dumber-mcp/index.ts"]
+    },
+    "daemon-launcher": {
+      "command": "bun",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/daemon-launcher/index.ts"]
     }
   }
 }
